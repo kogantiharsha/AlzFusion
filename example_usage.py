@@ -1,16 +1,9 @@
-"""
-Example usage of the Multi-Modal Alzheimer's Prediction System
-
-This script demonstrates how to use the system for training and inference.
-"""
-
 import sys
 import os
 import numpy as np
 import pandas as pd
 import torch
 
-# Add src to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 
 from src.models import MultiModalFusionModel
@@ -20,12 +13,10 @@ from src.utils import Config
 
 
 def example_training():
-    """Example of how to train the model"""
     print("="*60)
     print("EXAMPLE: Training the Multi-Modal Model")
     print("="*60)
     
-    # Load data
     print("\n1. Loading data...")
     genetic_data = np.load(Config.GENETIC_DATA_PATH)
     genetic_train = genetic_data['X_train']
@@ -34,7 +25,6 @@ def example_training():
     mri_train_df = pd.read_parquet(Config.MRI_TRAIN_PATH)
     mri_test_df = pd.read_parquet(Config.MRI_TEST_PATH)
     
-    # Align sizes
     min_train = min(len(genetic_train), len(mri_train_df))
     min_test = min(len(genetic_test), len(mri_test_df))
     
@@ -49,7 +39,6 @@ def example_training():
     print(f"   Training samples: {len(genetic_train)}")
     print(f"   Test samples: {len(genetic_test)}")
     
-    # Create data loaders
     print("\n2. Creating data loaders...")
     train_loader, test_loader = create_dataloaders(
         genetic_train, genetic_test,
@@ -58,7 +47,6 @@ def example_training():
         batch_size=Config.BATCH_SIZE
     )
     
-    # Create model
     print("\n3. Creating model...")
     model = MultiModalFusionModel(
         genetic_input_dim=Config.GENETIC_INPUT_DIM,
@@ -72,7 +60,6 @@ def example_training():
     
     print(f"   Model parameters: {sum(p.numel() for p in model.parameters()):,}")
     
-    # Create trainer
     print("\n4. Setting up trainer...")
     device = torch.device(Config.DEVICE)
     trainer = Trainer(
@@ -82,13 +69,11 @@ def example_training():
         lr=Config.LEARNING_RATE
     )
     
-    # Train (with fewer epochs for example)
     print("\n5. Training model (5 epochs for demonstration)...")
-    print("   (In practice, use more epochs for better results)")
     history = trainer.train(
         train_loader=train_loader,
         val_loader=test_loader,
-        num_epochs=5,  # Reduced for quick example
+        num_epochs=5,
         save_dir=Config.MODEL_SAVE_DIR,
         log_dir=Config.LOG_DIR
     )
@@ -98,7 +83,6 @@ def example_training():
 
 
 def example_inference(model_path=None):
-    """Example of how to use the model for inference"""
     print("\n" + "="*60)
     print("EXAMPLE: Inference with the Multi-Modal Model")
     print("="*60)
@@ -108,10 +92,8 @@ def example_inference(model_path=None):
     
     if not os.path.exists(model_path):
         print(f"\n⚠ Model not found at {model_path}")
-        print("   Please train a model first or specify --model_path")
         return
     
-    # Load model
     print(f"\n1. Loading model from {model_path}...")
     device = torch.device(Config.DEVICE)
     
@@ -132,17 +114,14 @@ def example_inference(model_path=None):
     
     print("   ✓ Model loaded successfully")
     
-    # Example: Create dummy data for inference
     print("\n2. Preparing example data...")
     genetic_features = np.random.randn(1, Config.GENETIC_INPUT_DIM).astype(np.float32)
     genetic_tensor = torch.FloatTensor(genetic_features).to(device)
     
-    # Create dummy MRI image tensor
     mri_tensor = torch.randn(1, 3, 224, 224).to(device)
     
     print("   ✓ Data prepared")
     
-    # Run inference
     print("\n3. Running inference...")
     with torch.no_grad():
         logits, attention_weights = model(genetic_tensor, mri_tensor)
@@ -164,8 +143,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Example usage of the Multi-Modal Alzheimer\'s Prediction System')
     parser.add_argument('--mode', type=str, choices=['train', 'inference', 'both'], 
                        default='both', help='Mode to run')
-    parser.add_argument('--model_path', type=str, default=None,
-                       help='Path to model for inference')
+    parser.add_argument('--model_path', type=str, default=None)
     
     args = parser.parse_args()
     
@@ -178,9 +156,3 @@ if __name__ == '__main__':
     print("\n" + "="*60)
     print("All examples completed!")
     print("="*60)
-    print("\nFor more details, see:")
-    print("  - README.md for project overview")
-    print("  - scripts/train.py for full training script")
-    print("  - scripts/evaluate.py for evaluation")
-    print("  - scripts/inference.py for inference")
-

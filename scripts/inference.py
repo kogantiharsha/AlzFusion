@@ -1,12 +1,7 @@
-"""
-Inference script for multi-modal Alzheimer's prediction model
-"""
-
 import argparse
 import sys
 import os
 
-# Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import torch
@@ -19,26 +14,19 @@ from src.utils import Config
 
 def main():
     parser = argparse.ArgumentParser(description='Inference with Multi-Modal Alzheimer\'s Prediction Model')
-    parser.add_argument('--model_path', type=str, required=True,
-                       help='Path to saved model')
-    parser.add_argument('--genetic_features', type=str, required=True,
-                       help='Path to genetic features file (.npy) or comma-separated values')
-    parser.add_argument('--mri_image', type=str, required=True,
-                       help='Path to MRI image file')
-    parser.add_argument('--num_classes', type=int, default=Config.NUM_CLASSES,
-                       help='Number of classes')
+    parser.add_argument('--model_path', type=str, required=True)
+    parser.add_argument('--genetic_features', type=str, required=True)
+    parser.add_argument('--mri_image', type=str, required=True)
+    parser.add_argument('--num_classes', type=int, default=Config.NUM_CLASSES)
     parser.add_argument('--class_names', type=str, nargs='+',
                        default=['Non-AD', 'MCI', 'AD', 'Other', 'Expression', 
-                               'Fluid biomarker', 'Imaging', 'Neuropathology', 'Cognitive'],
-                       help='Class names')
+                               'Fluid biomarker', 'Imaging', 'Neuropathology', 'Cognitive'])
     
     args = parser.parse_args()
     
-    # Set device
     device = torch.device(Config.DEVICE)
     print(f'Using device: {device}')
     
-    # Load model
     print('\nLoading model...')
     model = MultiModalFusionModel(
         genetic_input_dim=Config.GENETIC_INPUT_DIM,
@@ -55,12 +43,10 @@ def main():
     model.to(device)
     model.eval()
     
-    # Load genetic features
     print('\nLoading genetic features...')
     if args.genetic_features.endswith('.npy'):
         genetic_features = np.load(args.genetic_features)
     else:
-        # Assume comma-separated values
         genetic_features = np.array([float(x) for x in args.genetic_features.split(',')])
     
     if len(genetic_features.shape) == 1:
@@ -71,13 +57,11 @@ def main():
     
     genetic_tensor = torch.FloatTensor(genetic_features).to(device)
     
-    # Load and preprocess MRI image
     print('Loading MRI image...')
     mri_image = Image.open(args.mri_image)
     if mri_image.mode != 'RGB':
         mri_image = mri_image.convert('RGB')
     
-    # Preprocess image
     from torchvision import transforms
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -88,14 +72,12 @@ def main():
     
     mri_tensor = transform(mri_image).unsqueeze(0).to(device)
     
-    # Run inference
     print('\nRunning inference...')
     with torch.no_grad():
         logits, attention_weights = model(genetic_tensor, mri_tensor)
         probs = torch.softmax(logits, dim=1)
         predicted_class = torch.argmax(logits, dim=1).item()
     
-    # Display results
     print('\n' + '='*50)
     print('PREDICTION RESULTS')
     print('='*50)
@@ -115,4 +97,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

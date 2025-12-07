@@ -1,12 +1,7 @@
-"""
-Evaluation script for multi-modal Alzheimer's prediction model
-"""
-
 import argparse
 import sys
 import os
 
-# Add parent directory to path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import torch
@@ -20,33 +15,24 @@ import pandas as pd
 
 def main():
     parser = argparse.ArgumentParser(description='Evaluate Multi-Modal Alzheimer\'s Prediction Model')
-    parser.add_argument('--model_path', type=str, required=True,
-                       help='Path to saved model')
-    parser.add_argument('--genetic_data', type=str, default=Config.GENETIC_DATA_PATH,
-                       help='Path to preprocessed genetic data (.npz)')
-    parser.add_argument('--mri_test', type=str, default=Config.MRI_TEST_PATH,
-                       help='Path to MRI test data (.parquet)')
-    parser.add_argument('--batch_size', type=int, default=Config.BATCH_SIZE,
-                       help='Batch size')
-    parser.add_argument('--num_classes', type=int, default=Config.NUM_CLASSES,
-                       help='Number of classes')
-    parser.add_argument('--save_results', type=str, default=None,
-                       help='Path to save evaluation results')
+    parser.add_argument('--model_path', type=str, required=True)
+    parser.add_argument('--genetic_data', type=str, default=Config.GENETIC_DATA_PATH)
+    parser.add_argument('--mri_test', type=str, default=Config.MRI_TEST_PATH)
+    parser.add_argument('--batch_size', type=int, default=Config.BATCH_SIZE)
+    parser.add_argument('--num_classes', type=int, default=Config.NUM_CLASSES)
+    parser.add_argument('--save_results', type=str, default=None)
     
     args = parser.parse_args()
     
-    # Set device
     device = torch.device(Config.DEVICE)
     print(f'Using device: {device}')
     
-    # Load data
     print('\nLoading test data...')
     genetic_data = np.load(args.genetic_data)
     genetic_test = genetic_data['X_test']
     
     mri_test_df = pd.read_parquet(args.mri_test)
     
-    # Align data sizes
     min_test_size = min(len(genetic_test), len(mri_test_df))
     genetic_test = genetic_test[:min_test_size]
     mri_test_df = mri_test_df.iloc[:min_test_size]
@@ -55,9 +41,8 @@ def main():
     
     print(f'Test samples: {len(genetic_test)}')
     
-    # Create data loader
     _, test_loader = create_dataloaders(
-        genetic_test, genetic_test,  # Dummy train data
+        genetic_test, genetic_test,
         mri_test_df, mri_test_df,
         labels_test, labels_test,
         batch_size=args.batch_size,
@@ -65,7 +50,6 @@ def main():
         shuffle_train=False
     )
     
-    # Load model
     print('\nLoading model...')
     model = MultiModalFusionModel(
         genetic_input_dim=Config.GENETIC_INPUT_DIM,
@@ -85,7 +69,6 @@ def main():
     print(f'Loaded model from epoch {checkpoint.get("epoch", "unknown")}')
     print(f'Model Val Acc: {checkpoint.get("val_acc", "unknown"):.2f}%')
     
-    # Evaluate
     print('\nEvaluating model...')
     all_preds = []
     all_labels = []
@@ -109,11 +92,9 @@ def main():
     all_labels = np.array(all_labels)
     all_probs = np.array(all_probs)
     
-    # Compute metrics
     metrics = Metrics(num_classes=args.num_classes)
     results = metrics.compute_metrics(all_labels, all_preds, all_probs)
     
-    # Print results
     print('\n' + '='*50)
     print('EVALUATION RESULTS')
     print('='*50)
@@ -130,7 +111,6 @@ def main():
         print(f'    F1: {results["f1_per_class"][i]:.4f}')
         print(f'    Support: {results["support"][i]}')
     
-    # Plot confusion matrix
     print('\nGenerating confusion matrix...')
     os.makedirs('results', exist_ok=True)
     metrics.plot_confusion_matrix(
@@ -138,11 +118,9 @@ def main():
         save_path='results/confusion_matrix.png'
     )
     
-    # Print classification report
     print('\nClassification Report:')
     metrics.print_classification_report(all_labels, all_preds)
     
-    # Save results if requested
     if args.save_results:
         import json
         results_dict = {
@@ -159,4 +137,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
