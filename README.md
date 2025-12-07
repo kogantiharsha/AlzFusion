@@ -49,7 +49,7 @@ A cutting-edge AI system that combines genetic variant data and MRI brain imagin
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/AlzFusion.git
+git clone https://github.com/kogantiharsha/AlzFusion.git
 cd AlzFusion
 
 # Create virtual environment (recommended)
